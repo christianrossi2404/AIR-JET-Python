@@ -273,6 +273,13 @@ def rellenar_word(origen, destino, datos):
     with ZipFile(origen) as src, ZipFile(destino, "x", ZIP_DEFLATED) as dst:
         for info in src.infolist():
             contenido = src.read(info.filename)
+            if info.filename == "[Content_Types].xml":
+                # La entrada es una plantilla DOTX; la salida es un documento DOCX.
+                tipos = etree.fromstring(contenido)
+                for parte in tipos:
+                    if parte.get("PartName") == "/word/document.xml":
+                        parte.set("ContentType", "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml")
+                contenido = etree.tostring(tipos, xml_declaration=True, encoding="UTF-8", standalone=True)
             if xml_word(info.filename):
                 raiz = etree.fromstring(contenido)
                 modificado = False
@@ -380,7 +387,7 @@ def main():
         excel = Path(seleccion)
         if excel.suffix.lower() not in ('.xlsx', '.xlsm', '.xlsb', '.xls', '.xltx', '.xltm', '.xlt'):
             raise ValueError('Selecciona un libro o una plantilla de Excel.')
-        plantilla = localizar(CARPETA_WORD, NOMBRE_WORD, ('.docx',))
+        plantilla = localizar(CARPETA_WORD, NOMBRE_WORD, ('.dotx',))
         estado.set('Se abrirá Excel. Introduce la contraseña en la ventana de Excel si la solicita…')
         root.update_idletasks()
         marcadores = marcadores_plantilla(plantilla)
